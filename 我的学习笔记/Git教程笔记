@@ -1,0 +1,59 @@
+Git教程笔记:
+
+Git安装:sudo apt-get install git(Linux) 或 brew install git(Mac OS X,需先按照homebrew)
+设置: 
+	git config --global user.name "your name"
+	git config --global user.email "your email address"
+创建git仓库:创建一个空目录,进入目录,执行 git init 
+将文件添加到版本库:新建文本文件并编辑保存,执行命令1:git add 文件名
+执行命令2:git commit -m "这是提交文件到仓库的描述内容"
+git status 命令可以查看仓库的当前状态.
+git diff 文件名	  查看文件被修改的内容
+git log 命令显示从最近到最远的提交日志.(git log --pretty=oneline 只显示版本号和提交描述,其它信息过滤掉)
+回退到上一个版本:git reset --hard HEAD^(上上个版本是HEAD^^)	或者 git reset --hard 版本号(版本号可以只写前几位,能够唯一标识该版本即可)
+git reflog 可以记录每一次的提交操作.(返回新版本时可以查看新版本的commit ID)
+git diff HEAD -- 文件名	#查看工作区和版本库里最新版本的区别
+git checkout -- 文件名	#撤销文件在工作区的修改(还没有git add,恢复到最近一次commit或add时的状态)
+文件已经git add到暂存区,需要撤销: "git reset HEAD 文件名" 可以把暂存区的修改回退到工作区
+删除操作:
+	git rm 文件名		#从版本库中删除文件
+	git commit -m "删除文件"
+误删除后恢复到最新版本:
+	git checkout -- 文件名
+
+远程仓库:
+
+	创建SSH Key:	ssh-keygen -t rsa -C "your email address"
+该命令在用户主目录中创建id_rsa和id_rsa.pub两个文件,在远程仓库添加公钥.
+本地仓库关联远程仓库: git remote add origin 远程仓库地址
+git push -u origin master	#将本地仓库的内容推送到远程仓库,  -u参数在第一次推送时会将本地的master分支和远程的master分支关联起来,后续提交不需要加这个参数
+
+从远程库克隆一个本地库:
+	git clone 远程库地址
+
+分支管理:
+	git checkout -b dev   #创建dev分支并切换到dev分支上
+	等价于以下两条命令:'git branch dev'&&'git checkout dev'
+	git branch   #查看当前分支
+	git checkout master  #切换到master主分支
+	git merge dev  #把dev分支的工作合并到当前分支中
+	git branch -d dev  #删除dev分支
+	git log --graph  #查看分支合并图
+
+分支管理策略:
+	合并dev分支,使用'git mmerge --no-ff -m "merge with no-ff" dev'  -m参数会在合并后创建一个新的commit.
+	合并分支时,加上--no-ff参数可以用普通模式合并,合并后的历史有分支,能看出曾经坐过合并,fast-forward看不出曾经坐过合并
+删除一个未合并的分支:git branch -D dev
+查看远程库的信息:git remote 或 git remote -v
+推送分支:git push origin(远程仓库的默认名称) master(本地仓库的分支名称)
+
+标签管理:
+	1.git branch master 切换到需要打标签的分支上
+	2.git tag v1.0	打一个新标签v1.0
+	git tag  查看所有标签
+	给历史版本打标签:
+		1) git log --pretty=online --abbrev-commit #查看历史版本号
+		2) git tag v0.9 历史版本号
+		给对应的历史版本打标签
+	git show 标签名    查看标签信息
+	

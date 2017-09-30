@@ -1,0 +1,58 @@
+bash shell笔记:
+
+sort -[ntkr] filename	# n 安照数字排序 t 指定分隔符 k 指定第几列 r 反向排序
+cat filename|sort -t ":" -k 2  #以:分隔,安装第二列进行排序
+uniq 删除重复内容:	uniq [-ic] # -i忽略大小写  -c 计算重复行数
+uniq只对比相邻的行并删除重复行,若重复行不相邻,则不会删除,想要删除非相邻的重复行,一般会先进行排序再删除
+cat file|sort|uniq -c
+
+cut 截取文本:
+	cat file|cut -f1 -d':'  安照分隔符:截取每一行的第一列内容
+	cat file|cut -f1,6-7 -d':' 
+	cat file|cut -c1-5,7-10  打印出每一行的1--5,7--10的字符
+tr 文本转换:
+	cat file|tr '[a-z]' '[A-Z]' 将文本中所有字符小写转换为大写
+	cat file|tr -d ':'	删除文本中所有:号
+paste 文本合并:
+	paste file1 file2
+	paste -d: file1 file2
+split 分隔大文件:
+	split -l 500 big_file small_file_  按照500行为标准将大文件切割成500行的小文件
+	split -b 5m big_file small_file_
+
+sed 文本替换:
+	sed -e 's/this/THAT/g' -e 's/line/LINE/g' Sed.txt
+	sed -e 's/this/THAT/g;s/line/LINE/g' Sed.txt
+	this改为THAT,line改为LINE
+删除:
+	sed '1d' Sed.txt	删除第一行并输出到控制台
+	sed '1d' Sed.txt > save_file
+	sed -i '1d' Sed.txt	直接在源文件中删除第一行并保存
+	sed '1,3d' file 	删除1至3行.
+	sed '1,$d' file 	删除第一至最后行
+	sed '$d' file 	删除最后一行
+	sed '5!d' file 	除了第五行,全部删除
+	sed '/Empty/d' file 	删除所有包含Empty字段的行
+	sed '/^$/d' file 	删除空行
+查找替换:
+	sed 's/line/LINE/' file 	默认情况下只替换第一次匹配到的内容
+	sed 's/line/LINE/2' file   前两个查找到的内容被替换
+	sed 's/line/LINE/g' file   完成所有匹配值的替换
+	sed 's/^this/that/' file   只替换开头的this为that
+字符转换:
+	sed 'y/abcd/ABCD/' file   将文件中的a,b,c,d字符分别替换成为A,B,C,D
+插入文本:
+	sed '2 i INSERT' file   在第二行前面插入文本 INSERT
+	sed '2 a INSERT' file   在第二行后面插入文本 INSERT
+	sed '/FIND/i\INSERT' file   在文本中匹配到字段FIND并在上一行插入INSERT
+读入文本:
+	使用r命令从其他文件中读取文本,并插入匹配行之后
+	sed '/^$/r /etc/passwd' file 
+打印:
+	sed -n '1p' file   打印出文件中指定的行
+	sed -n 's/the/THE/p' file   使用p命令,则只打印实际处理过的行,简化了输出(使用-n参数)
+写文件:
+	sed -n '1,2 w output.txt' file  从file中读取的前两行内容被重定向到output.txt中
+高级替换:
+	替换匹配的空格行的下一行并替换:sed '/^$/{n;s/line/LINE/g}' file
+	sed '/a/{h;d};/b/G' file   实现第一行与第二行反转,第三与第四行反转

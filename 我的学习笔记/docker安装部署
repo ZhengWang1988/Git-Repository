@@ -1,0 +1,27 @@
+# Ubuntu安装部署docker过程:
+# apt-get install docker
+apt install docker.io #安装docker
+service docker status #查看docker服务状态
+service docker stop #停止docker服务
+service docker start #启动docker服务
+service docker restart #重启docker服务
+docker images #查看当前已有的docker镜像
+docker pull mysql:5.5 从docker镜像网站下载mysql 5.5版本的镜像(国内下载网速非常慢,能不能成功下载基本靠人品)
+切换下载源:
+	打开/etc/docker/daemon.json文件,没有则新建一个,在文件中输入:
+	{
+  "registry-mirrors":["https://docker.mirrors.ustc.edu.cn"]
+}
+重启docker,再次下载,稍等片刻,下载成功.
+docker images #查看当前已有的docker镜像详情
+删除已下载的镜像: docker rmi 镜像名称:镜像TAG	或者: docker rmi 镜像的IMAGE ID
+导出&导入镜像:docker save mysql:5.5 > /root/mysql_5.5.tar.gz
+导入镜像:docker load < /root/mysql_5.5.tar.gz
+启用一个容器:docker run -it --name my-centos centos:7.0 /bin/bash	交互式启用容器(一般不推荐此方式启用)
+docker run -d --name my-centos centos:7.0		#docker的正确打开姿势
+docker ps -a #查看所有启动的容器
+docker stop 容器名	#停止容器
+docker rm 容器名	#删除一个容器(正在运行的容器不能删除)
+启动一个tomcat容器并进行端口映射:docker run -d --name my-tomcat -p 8888:8080 tomcat:7	#8888是我们自己设置的端口,8080为tomcat容器默认的端口,进行映射后,可使用映射端口访问容器
+docker exec -it my-tomcat /bin/bash	#以交互模式进入容器
+docker cp xxx.war my-tomcat:/usr/local/tomcat/webapps	#将项目文件放入容器内的指定目录下

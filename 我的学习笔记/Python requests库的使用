@@ -1,0 +1,65 @@
+Python Requests库的使用:
+
+安装:pip install requests
+
+import requests
+网络请求:GET
+s = requests.get('http://python.org')
+print(type(s))
+print(s.encoding)
+print(s.text)
+print(s.cookies)
+print(s.status_code)
+
+payload = {'key':'value','key2':'value2'}
+r = requests.get('http://python.org',params=payload)
+print(r.url)
+如果get请求返回的是json字符串,可以使用requests的json()函数进行解析:r.json()
+添加头信息:headers
+payload = {'key':'value','key2':'value2'}
+headers = {'Content-Type':'application/json'}
+r = requests.get(url,params=payload,headers=headers)
+
+原始套接字数据:bool类型 指定stream=True,可以直接通过r.raw拿到原始的套接字数据
+
+POST请求:
+payload = {'key':'value','key2':'value2'}
+r = requests.post(url,data=json.dumps(payload))
+文件上传功能:
+files = {'file':open('a.txt','rb')}
+r = requests.post(uploadurl,files=files)
+print(r.text)
+
+流式上传:
+上传大文件时,使用流式上传,无需将文件读取到内存中,只需提供一个类对象即可:
+with open('content_with_size') as buf:
+	requests.post(uploadurl,data=buf)
+
+Cookies 
+需要从请求响应中拿到Cookies,可以直接通过cookies变量获取
+r = requests.ge(url)
+print(r.cookies)	#返回一个cookie列表
+print(r.cookies['cookie_name'])
+
+会话状态:Session()	将所有请求放在一个Session中执行
+s = requests.Session()
+s.get('http://python.org/index')
+r = s.get('http://www.python.org/login')
+print(r.cookies)
+
+超时配置:
+r = requests.get('http://httpbin.org',timeout=0.1)
+timeout仅限制了连接过程,连接成功后响应体下载不受影响
+
+SSL证书校验:
+r = requests.get('https://httpbin.org',verify=True)
+print(r.text)
+该请求会校验当前SSL的有效性,如果SSL无效,会抛出SSLError
+
+代理:
+proxies = {
+	'https':'http://127.0.0.1:8000'
+}
+r = requests.post('http://httpbin.org',proxies=proxies)
+print(r.text)
+也可以设置HTTP_PROXY 和 HTTPS_PROXY 两个环境变量来实现全局代理
