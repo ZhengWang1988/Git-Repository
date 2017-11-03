@@ -291,3 +291,377 @@ m = max(map(len,d.keys()))	#取各个键的最大长度
 for k in d:
 	print(k.ljust(m),':',d[k])
 
+
+# 如何去掉字符串中不需要的字符
+s = '  abc  123  '
+s.strip()  #去掉两头的空白字符
+s.lstrip() #去掉左边的空白
+s.rstrip() #去掉右边的空白
+s = '+++abc---'
+s.strip('+-')  #去掉'+' 和'-'
+
+s = 'abc:123'
+s[:3] + s[4:]
+
+s = '\tabc\txyz'
+s.replace('\t', '')
+
+s = '\r\tabc\t\rbvc\n'
+import re
+re.sub('[\t\r\n]', '', s)
+
+s = 'abc1234567xyz'
+import string
+string.maketrans('abcxyz','xyzabc')  #制造字符的映射关系 a映射x b映射y
+s.translate(string.maketrans('abcxyz','xyzabc'))  
+# xyz1234567abc
+
+
+# 如何读写文本文件
+f = open('py3.txt','wt',encoding='utf-8')
+f.write('你好')
+f.close()
+f = open('py3.txt','rt',encoding='utf-8')
+print(f.read())
+
+# 如何处理二进制文件
+f = open('demo.wav','rb')
+info = f.read(44)
+import struct
+struct.unpack('h', info[22:24])  #音频文件声道数
+struct.unpack('i', info[4:28])   #采样频率
+
+import array
+n = (f.tell() - 44) / 2
+buf = array.array('h', (0 for _ in range(n)))
+f.seed(44)  #文件指针指向数据部分
+f.readinto(buf)  #将数据读入buf中
+# open函数想以二进制模式打开文件,指定mode参数为'b'
+# 二进制数据可以用readinto,读入到提前分配好的buffer中,便于数据处理
+# 解析二进制数据可以使用标准库中的struct模块的unpack方法
+
+
+# 如何设置文件的缓冲
+全缓冲:
+# 普通文件默认的缓冲区是4096个字节
+f = open('demo.txt','w',buffering=2048)
+f.write('a'*1024)  #tail实时查看文件无显示内容
+f.write('b'*1024)  #依然无内容显示
+f.write('c')   #文件写入内容超出缓冲区设置大小,文本内容显示出来
+行缓冲:
+f = open('demo2.txt','w',buffering=1)
+f.write('abc')
+f.write('\n')
+f.write('xyz\n')
+无缓冲:
+f = open('demo2.txt','w',buffering=0)
+f.write('123')
+
+
+# 如何将文件映射到内存
+1.在访问某些二进制文件时,希望能把文件映射到内存中,可以实现随机访问. (framebuffer设备文件)
+
+2.某些嵌入式设备,寄存器被编址到内训地址空间,我们可以映射/dev/mem某范围,去访问这些寄存器
+
+3.如果多个进程映射同一个文件,还能实现进程通信的目的.
+
+
+# 如何使用临时文件?
+from tempfile import TemporaryFile,NamedTemporaryFile
+f = TemporaryFile()  #创建一个临时文件对象
+f.write('hello,world' * 10000)	#向临时文件写入临时数据
+f.seek(0)	#文件指针指向临时文件头部
+f.read(100)   #读取数据
+# 系统中找不到该文件,只能有该临时文件的对象来访问
+
+ntf = NamedTemporaryFile()
+print(ntf.name)
+# 系统中临时文件目录中可以找到该临时文件,创建新的临时文件时之前的会被删除,可设置默认参数delete=False来保存之前的临时文件
+
+
+# 如何读写csv数据?
+from urllib import urlretrieve
+urlretrieve('http://table.finance.yahoo.com/table.csv?s=000001.sz','pingan.csv')
+import csv
+rf = open('pingan.csv','rb')
+reader = csv.reader(rf)
+header = (reader.next())  #逐行打印
+
+wf = open('pingan.csv','wb')
+writer = csv.writer(wf)
+writer.writerow(header)		#写入头部
+writer.writerow(reader.next())
+wf.flush()   #保存到文件中
+================================================
+import csv
+with open('pingan.csv','rb') as rf:
+	reader = csv.reader(rf)
+	with open('pingan2.csv','wb') as wf:
+		writer = csv.writer(wf)
+		headers = reader.next()
+		writer.writerow(headers)
+		for row in reader:
+			if row[0] < '2016-01-01':
+				break
+			if int(row[5]) >= 50000000:
+				writer.writerow(row)
+print('writing end')
+================================================
+
+# 如何读写json数据
+# json.dumps() 和 json.loads() 的参数是字典.
+# json.dump() 和 json.load() 的参数是文件.
+with open('dump.json','wb') as f:
+	json.dump({'a':1,'b':2,'c':3},f)
+
+
+# 如何解析简单的XML文档
+from xml.etree.ElementTree import parse
+f = open('demo.xml')
+et = parse(f)
+root = et.getroot()  #获取根节点
+root.tag  #获取元素标签
+for child in root:
+	print(child.get('name'))
+
+
+# 如何读写excel文件?
+import xlrd,xlwt
+book = xlrd.open_workbook('demo.xlsx')
+sheet = book.sheet_by_index(0)  #根据索引获取excel文件的sheet
+sheet = book.sheet_by_name('sheetname')  #根据sheet名获取Excel文件的sheet
+print(sheet.nrows)
+print(sheet.ncols)
+print(sheet.cell(0,0))
+print(sheet.row(1))
+
+wbook = xlwt.Workbook()
+wsheet = wbook.add_sheet('sheet1')
+wsheet.write(row,col,label)
+wbook.save('output.xlsx')
+================================================
+import xlrd,xlwt
+rbook = xlrd.open_workbook('demo.xlsx')
+rsheet = rbook.sheet_by_index(0)
+nc = rsheet.ncols
+rsheet.put_cell(0,nc,xlrd.XL_CELL_TEXT,'总分',None)
+for row in range(1,rsheet.nrows):
+	total = sum(rsheet.row_values(row,1))
+	rsheet.put_cell(row,nc,xlrd.XL_CELL_TEXT,total,None)
+wbook = xlwt.Workbook()
+wsheet = wbook.add_sheet(rsheet.name)
+style = xlwt.easyxf('align:vertical center,horizontal center')
+for r in range(rsheet.nrows):
+	for c in range(rsheet.ncols):
+		wsheet.write(r,c,rsheet.cell_values(r,c),style)
+wbook.save('output.xlsx')
+================================================
+
+
+# 如何派生内置不可变类型并修改其实例化行为?
+# 实际案例:想自定义一种新类型的元组,对于传入的可迭代对象,只保留其中int类型且值大于0的元素,例如:IntTuple([1,-1,'abc',6,['x','y'],3]) ==> (1,6,3) 要求IntTuple是内置tuple的子类,如何实现?
+class IntTuple(tuple):
+	def __new__(cls,iterable):
+		g = (x for x in iterable if isinstance(x,int) and x > 0)
+        return super(IntTuple,cls).__new__(cls,g)
+	def __init__(self,iterable):
+		super(IntTuple,self).__init__(iterable)
+
+
+# 如何为创建大量实例节省内存?
+# 解决方案:定义类的__slots__属性,它是用来声明实例属性名字的列表.
+import sys
+sys.getsizeof(object, default)  #查看对象的消耗内存大小
+class Player(object):
+	__slots__ = ['id','name','age','job']	#绑定实例化属性,属性实例化之后无法拓展,达到节省内存消耗的目的
+	def __init__(self,id,name,age,job):
+		self.id = id
+		self.name = name
+		self.age = age
+		self.job = job
+
+# 如何让对象支持上下文管理?
+# 实际案例:我们实现了一个telnet客户端的类TelnetClient,调用实例的start()方法启动客户端与服务器交互,交互完毕后需调用cleanup()方法,关闭已连接的socket,以及将操作历史记录写入文件并关闭.    能否让TelnetClient的实例支持上下文管理协议,从而替代手工调用cleanup()方法???
+解决方案:实现上下文管理协议,需定义实例的__enter__,__exit__方法,它们分别在with开始和结束时被调用
+
+from telnetlib import Telnet
+from sys import stdin,stdout
+from collections import deque
+class TelnetClient(object):
+	def __init__(self,addr,port=23):
+		self.addr = addr
+		self.port = port
+		self.tn = None
+	def start(self):
+		self.tn = Telnet(self.addr,self.port)
+		self.history = deque()
+		# user
+		t = self.tn.read_until('login:')
+		stdout.write(t)
+		user = stdin.readline()
+		self.tn.write(user)
+		# password
+		t = self.tn.read_until('Password:')
+		if t.startswith(user[:-1]):t = t[len(user) + 1:]
+		stdout.write(t)
+		self.tn.write(stdin.readline())
+
+		t = self.tn.read_until('$ ')
+		stdout.write(t)
+		while True:
+			uinput = stdin.readline()
+			if not uinput:
+				break
+			self.history.append(uinput)
+			self.tn.write(uinput)
+			t = self.tn.read_until('$ ')
+			stdout.write(t[len(uinput) + 1:])
+
+	# def cleanup(self):
+	# 	self.tn.close()
+	# 	self.tn = None
+	# 	with open(self.addr + '_history.txt','w') as f:
+	# 		f.writelines(self.history)
+
+ 	def __enter__(self):
+ 		self.tn = Telnet(self.addr,self.port)
+ 		self.history = deque()
+ 		return self
+ 	def __exit__(self,exc_type,exc_val,exc_tb):
+ 		self.tn.close()
+ 		self.tn = None
+ 		with open(self.addr + '_history.txt','w') as f:
+ 			f.writelines(self.history)
+
+ with TelnetClient('127.0.0.1') as client:
+ 	client.start()
+
+
+ # 如何创建可管理的对象属性?
+ # 使用调用方法在形式上不如访问属性简洁,能否在形式上是属性访问,实际上是调用方法?
+ # 解决方案:使用property函数为类创建可管理属性,fget/fset/fdel对应相应属性
+ from math import pi
+ class Circle(object):
+ 	def __init__(self,radius):
+ 		self.radius = radius
+ 	def getRadius(self):
+ 		return self.radius
+ 	def setRadius(self,value):
+ 		if not isinstance(value, (int, long, float)):
+ 			raise ValueError('wrong type.')
+ 		self.radius = float(value)
+ 	def getArea(self):
+ 		return self.radius ** 2 * pi
+ 	R = property(getRadius, setRadius)
+
+
+ # 如何让类支持比较操作
+ # 解决方案:比较符号运算重载,需要实现以下方法:__lt__,__le__,__gt__,__ge__,__eq__,__ne__ .
+class Rectangle(object):
+	def __init__(self,w,h):
+		self.h = h
+		self.w = w
+	def area(self):
+		return self.w * self.h
+
+	def __lt__(self,obj):
+		return self.area() < obj.area()
+	def __le__(self,obj):
+		return self.area() <= obj.area()
+	def __gt__(self,obj):
+		return self.area() > obj.area()
+	def __ge__(self,obj):
+		return self.area() >= obj.area()
+	def __eq__(self,obj):
+		return self.area() == obj.area()
+	def __ne__(self,obj):
+		return self.area() != obj.area()
+# 使用标准库下的functools下的类装饰器可以简化此过程
+from functools import total_ordering
+@total_ordering
+class Rectangle(object):
+	def __init__(self,w,h):
+		self.h = h
+		self.w = w
+	def area(self):
+		return self.w * self.h
+	def __eq__(self,obj):
+		return self.area() == obj.area()
+	def __lt__(self,obj):
+		return self.area() < obj.area()
+
+ # 如何使用描述符对实例属性做类型检查?
+ # 实际案例:在某项目中,实现了一些类,希望能像静态类型语言那样对实例属性做类型检查
+ # 要求:1 可以对实例变量名指定类型 2 赋予不正确的类型时抛出异常
+ # 解决方案:使用描述符来实现需要类型检查的属性:分别实现__get__,__set__,__delete__ 方法,在__set__内使用isinstance函数做类型检查
+ class  Attr(object):
+ 	"""docstring for  Attr"""
+ 	def __init__(self, name,type_):
+ 		'''定义属性和对应的类型'''
+ 		self.name = name
+ 		self.type = type_
+ 	def __get__(self,instance,cls):
+ 		return instance.__dict__[self.name]
+ 	def __set__(self,instance,value):
+ 		if not isinstance(value,self.type_):
+ 			raise TypeError('expected an %s' % self.type_)
+ 		instance.__dict__[self.name] = value
+ 	def __delete__(self,instance):
+ 		del instance.__dict__[self.name]
+
+ class Person(object):
+ 	name = Attr('name', str)
+ 	age = Attr('age', int)
+ 	height = Attr('height', float)
+
+ # 如何在环状数据结构中管理内存?
+ # python中垃圾回收器通过引用计数来回收垃圾对象,某些环状数据结构存在对象间的循环引用,同时del掉引用的节点,两个对象不能被立即回收,该如何解决?
+ # 解决方案:使用标准库weakref,可以创建一种能访问对象但不增加引用计数的对象(类似于Objective-C中的弱引用)
+import sys
+sys.getrefcount(object)  #查看对象的引用计数
+import weakref
+class Data(object):
+	"""docstring for Data"""
+	def __init__(self, value,owner):
+		# self.owner = owner
+		self.owner = weakref.ref(owner)
+		self.value = value
+	def __str__(self):
+		return "%s's data,value is %s" % (self.owner,self.value)
+	def __del__(self):
+		print('in Data.__del__')
+class Node(object):
+	def __init__(self,value):
+		self.data = Data(value, self)
+	def __del__(self):
+		print('in Node.__del__')
+
+node = Node(100)
+del node
+
+
+# 如何通过实例方法名字的字符串调用方法
+# 实际案例:项目中代码使用了三个不同库中的图形类:Circle,Triangle,Rectangle. 每个类都有一个获取图形面积的接口(方法),但接口名字不同,我们可以实现一个统一的获取面积的函数,使用每种方法名进行尝试,调用相应类的接口
+# 解决方案:1 使用内置函数getattr,通过名字在实例上获取方法对象,然后调用. 2 使用标准库中的operator下的methodcaller函数调用
+class Circle(object):
+	pass
+class Triangle(object):
+	pass
+class Rectangle(object):
+	pass
+
+def getArea(shape):
+	for name in ('area','getarea','get_area'):
+		f = getattr(shape, name, None)
+		if f:
+			return f()
+s1 = Circle(2)
+s2 = Rectangle(3,3)
+s3 = Triangle(2,3,4)
+shapes = [s1,s2,s3]
+print(getArea,shapes)
+
+from operator import methodcaller
+s = 'abc123abc321'
+s.find('abc', 3)
+methodcaller('find','abc',4)
