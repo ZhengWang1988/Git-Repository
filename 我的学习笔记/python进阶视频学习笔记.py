@@ -665,3 +665,241 @@ from operator import methodcaller
 s = 'abc123abc321'
 s.find('abc', 3)
 methodcaller('find','abc',4)
+
+
+# 如何使用多线程?
+====================================================
+import csv
+from xml.etree.ElementTree import Element,ElementTree
+import requests
+from StringIO import StringIO
+from xml_pretty import pretty
+def download(url):
+	response = requests.get(url,timeout=3)
+	if response.ok:
+		return StringIO(response.content)
+def csvToXml(scsv,fxml):
+	reader = csv.reader(scsv)
+	headers = reader.next()
+	headers = map(lambda h:h.replace(' ',''),headers)
+
+	root = Element('Data')
+	for row in reader:
+		eRow = Element('Row')
+		root.append(eRow)
+		for tag,text in zip(headers,row):
+			e = Element(tag)
+			e.text = text
+			eRow.append(e)
+	pretty(root)
+	et = ElementTree(root)
+	et.write(fxml)
+
+# if __name__ == "__main__":
+# 	url = "http://table.finance.yahoo.com/table.csv?s=000001.sz"
+# 	rf = download(url)
+# 	if rf:
+# 		with open('000001.xml','wb') as wf:
+# 			csvToXml(rf,wf)
+====================================================
+def handle(sid):
+	print('Downloading...(%d)' % sid)
+	url = "http://table.finance.yahoo.com/table.csv?s=%s.sz"
+	url %= str(sid).rjust(6, '0')  #股票代码000001,只需传入1即可,其它数字自动以0填充
+	rf = download(url)
+	if rf is None:return
+	print('Covert to XML...(%d)' % sid)
+	fname = str(sid).rjust(6, '0') + '.xml'
+	with open(fname,'wb') as wf:
+		csvToXml(rf, wf)
+
+from threading import Thread
+# 方法1:
+t = Thread(target=handle,args=(1,))
+t.start()
+print('main thread')
+# 方法2:
+class MyThread(Thread):
+	def __init__(self,sid):
+		Thread.__init__(self)
+		self.sid = sid
+	def run(self):
+		handle(self.sid)
+
+threadList = []
+for i in range(1,11)
+	t = MyThread(i)
+	threadList.append(t)
+	t.start()
+
+for t in threadList:
+	t.join() #阻塞函数,会让子线程全部退出之后主线程再退出
+print('main thread')
+
+
+
+# 如何线程间通信?
+====================================================
+import csv
+from xml.etree.ElementTree import Element,ElementTree
+import requests
+from StringIO import StringIO
+from xml_pretty import pretty
+from threading import Thread
+from Queue import Queue
+
+class DownloadThread(Thread):	#下载线程类
+	def __init__(self,sid):
+		Thread.__init__(self)
+		self.sid = sid
+		self.url = "http://table.finance.yahoo.com/table.csv?s=%s.sz"
+		self.url %= str(sid).rjust(6, '0')
+	def download(self,url):
+		response = requests.get(url,timeout=3)
+		if response.ok:
+			return StringIO(response.content)
+	def run(self):  #线程入口方法
+		print('Download',self.sid)
+		data = self.download(self.url)
+		self.queue.put((self.sid,data))
+
+class ConvertThread(Thread):
+	def __init__(self,queue):
+		Thread.__init__(self)
+		self.queue = queue
+
+	def csvToXml(self,scsv,fxml):
+		reader = csv.reader(scsv)
+		headers = reader.next()
+		headers = map(lambda h:h.replace(' ',''),headers)
+
+		root = Element('Data')
+		for row in reader:
+			eRow = Element('Row')
+			root.append(eRow)
+			for tag,text in zip(headers,row):
+				e = Element(tag)
+				e.text = text
+				eRow.append(e)
+		pretty(root)
+		et = ElementTree(root)
+		et.write(fxml)
+	def run(self):
+		while True:
+			sid,data = self.queue.get()
+			print('Convert',sid)
+			if sid == -1:
+				break
+			if data:
+				fname = str(sid).rjust(6, '0') + '.xml'
+				with open(fname,'wb') as wf:
+					self.csvToXml(data, wf)
+
+q = Queue()
+dThreads = [DownloadThread(i,q) for i in range(1,11)]
+cThread = ConvertThread(q)
+for t in dThreads:
+	t.start()
+cThread.start()
+
+for t in dThreads:
+	t.join()
+q.put(-1,None)
+====================================================
+
+# 如何使用函数装饰器?
+# 定义装饰器函数,用来生成一个在原函数基础添加了新功能的函数,替代原函数
+def memo(func):
+	cache = {}
+	def wrap(*args):
+		if args not in cache:
+			cache[args] = func(*args)
+		return cache[args]
+	return wrap
+@memo
+def fibonacci(n):
+	"""斐波那契数列"""
+	return 1 if n <= 1 else fibonacci(n-1) + fibonacci(n-2)
+
+# 没有装饰器函数,需修改原函数以提高运算效率:
+def fibonacci2(n,cache=None):
+	if cache is None:
+		cache = {}  #创建新字典
+	if n in cache:
+		return cache[n]  #返回n的值
+	if n <= 1:
+		return 1
+	cache[n] = fibonacci2(n-1,cache) + fibonacci2(n-2,cache)
+
+
+# 10个台阶的楼梯,从下面走到上面,一次只能迈1-3个台阶,且不能后退,走完楼梯共有多少种方法.
+@memo
+def climb(n,steps):
+	count = 0
+	if n == 0:
+		count = 1
+	elif n > 0:
+		for step in steps:
+			count += climb(n-step, steps)
+	return count
+
+如何为被装饰的函数保存元数据?
+# f.__name__  函数的名字
+# f.__doc__   函数的文档字符串
+# f.__moudle__  函数所属模块名
+# f.__dict__  默认字典
+# f.__defaults__  默认参数元组
+# 使用装饰器后,再使用上面这些属性访问时,看到的是内部包裹函数的元数据,原来函数的元数据便丢失掉了,应该如何解决?
+====================================================
+from functools import update_wrapper,wraps
+def mydecrator(func):
+	@wraps(func)
+	def wrapper(*args,*kargs):
+		'''wrapper function'''
+		print('In wrapper!')
+		func(*args,*kargs)
+	# update_wrapper(wrapper, func,('__name__','__doc__',''),('__dict__'))
+	return wrapper
+
+@mydecrator
+def example():
+	'''example function'''
+	print('In example')
+print(example.__name__)
+print(example.__doc__)
+====================================================
+
+# 如何实现属性可修改的函数装饰器?
+为分析程序内哪些函数执行时间开销较大,定义一个带timeout的函数装饰器,装饰功能如下: 1 统计被装饰函数单次调用运行时间 2 时间大于参数timeout的,将此次函数调用记录到log日志中 3 运行时可修改timeout的值.
+
+from functools import wraps
+import time
+import logging
+
+def warn(timeout):
+    def decorator(func):
+    	def wrapper(*args,**kargs):
+    		start = time.time()
+    		res = func(*args,**kargs)
+    		used = time.time() - start
+    		if used > timeout:
+    			msg = '%s:%s > %s' % (func.__name__,used,timeout)
+    			logging.warn(msg)
+    		return res
+    	def setTimeout(k):
+    		nonlocal timeout
+    		timeout = k
+    	wrapper.setTimeout = setTimeout
+    	return wrapper
+    return decorator
+
+
+from random import randint
+@warn(1.5)
+def test():
+	print("In test")
+	while randint(0, 1):
+		time.sleep(0.5)
+
+for _ in range(30):
+	test()
